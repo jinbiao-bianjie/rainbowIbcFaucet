@@ -16,7 +16,7 @@ let irisAddressInformation = Crypto.getCrypto('iris','testnet').recover(`${confi
 let commosAddressInformation = Crypto.getCrypto('cosmos','testnet').recover(`${config.app.cosmosMnemonicWord}`);
 
 let iris_account_number,iris_sequence,cosmos_account_number,cosmos_sequence;
-function getAccountNumberaAndSequence(){
+function getAccountNumberAndSequence(){
 	let irisUrl = `${config.app.irisLcdUrl}/auth/accounts/${irisAddressInformation.address}`;
 	let cosmosUrl = `${config.app.cosmosLcdUrl}/auth/accounts/${commosAddressInformation.address}`;
 	request.get(irisUrl,(error, response, body) => {
@@ -30,7 +30,7 @@ function getAccountNumberaAndSequence(){
 		cosmos_sequence = Number(parseBody.result.value.sequence)
 	})
 }
-getAccountNumberaAndSequence()
+getAccountNumberAndSequence()
 app.get('/api/faucet',(req,res) => {
 	let chainId,from,gas,fees,memo,account_number,sequence,denom,AddressInformationPrivateKey,url;
 	if(req.query.chainName === "iris"){
@@ -87,19 +87,18 @@ app.get('/api/faucet',(req,res) => {
 		body: postTx
 	}, (error, response, body) => {
 		if (!error && response.statusCode == 200) {
-			getAccountNumberaAndSequence()
 			if(body && body.logs && body.logs[0].success){
 				res.send({
 					code: 1,
 					msg:'success'
 				})
-				getAccountNumberaAndSequence()
+				getAccountNumberAndSequence()
 			}else {
 				res.send({
 					code: 0,
 					msg:'failed'
 				})
-				getAccountNumberaAndSequence()
+				getAccountNumberAndSequence()
 			}
 		}
 	})
