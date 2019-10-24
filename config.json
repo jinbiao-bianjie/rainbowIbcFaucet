@@ -1,0 +1,12 @@
+{
+  "app": {
+    "irisLcdUrl": "${irisLcdUrl}",
+    "cosmosLcdUrl": "${cosmosLcdUrl}",
+    "irisChainId": "${irisChainId}",
+    "cosmosChainId": "${cosmosChainId}",
+    "tokenNumber": "${tokenNumber}",
+    "gasNumber": "${gasNumber}",
+    "irisMnemonicWord": "${irisMnemonicWord}",
+    "cosmosMnemonicWord": "${cosmosMnemonicWord}"
+  }
+}
