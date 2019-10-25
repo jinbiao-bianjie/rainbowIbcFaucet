@@ -39,9 +39,9 @@ getIrisAccountNumberAndSequence();
 getCosmosAccountNumberAndSequence();
 app.get('/api/faucet',(req,res) => {
 	if(req.query.chainName === 'iris'){
-		IRISArrayAddress.push(req.query);
+		IRISArrayAddress.unshift(req.query);
 	}else if(req.query.chainName === 'cosmos') {
-		cosmosArrayAddress.push(req.query);
+		cosmosArrayAddress.unshift(req.query);
 	}
 	
 	res.send({
