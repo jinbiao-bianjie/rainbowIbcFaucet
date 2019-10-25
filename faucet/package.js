@@ -21,7 +21,8 @@ replaceEnv([
 		"tokenNumber": program.P[4],
 		"gasNumber": program.P[5],
 		"irisMnemonicWord": program.P[6],
-		"cosmosMnemonicWord": program.P[7]
+		"cosmosMnemonicWord": program.P[7],
+		"network": program.P[8],
 	}
 );
 

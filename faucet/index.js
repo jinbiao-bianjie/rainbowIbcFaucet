@@ -6,14 +6,11 @@ const qs = require('querystring');
 const app = express();
 const config = require("./config");
 
-
 let IRISArrayAddress = [],cosmosArrayAddress = [],isIrisPostedSuccess = true,isCosmosPostedSuccess = true;
-
-// let addressInformation = Crypto.getCrypto('iris','testnet').recover('surprise absurd mind pitch soccer foil zone orange type recall butter wisdom cigar situate grab ladder display loyal impose curtain syrup great retire best',"english");
 //iris 水龙头地址信息
-let irisAddressInformation = Crypto.getCrypto('iris','testnet').recover(`${config.app.irisMnemonicWord}`);
+let irisAddressInformation = Crypto.getCrypto('iris',config.app.network).recover(`${config.app.irisMnemonicWord}`);
 //cosmos 水龙头地址信息
-let commosAddressInformation = Crypto.getCrypto('cosmos','testnet').recover(`${config.app.cosmosMnemonicWord}`);
+let commosAddressInformation = Crypto.getCrypto('cosmos',config.app.network).recover(`${config.app.cosmosMnemonicWord}`);
 let iris_account_number,iris_sequence,cosmos_account_number,cosmos_sequence;
 function getIrisAccountNumberAndSequence () {
 	let irisUrl = `${config.app.irisLcdUrl}/auth/accounts/${irisAddressInformation.address}`;
@@ -84,7 +81,7 @@ app.get('/api/faucet',(req,res) => {
 						]
 					}
 				};
-				let builder = Crypto.getBuilder(IRISArrayAddress[IRISArrayAddress.length -1].chainName,'testnet');
+				let builder = Crypto.getBuilder(IRISArrayAddress[IRISArrayAddress.length -1].chainName,config.app.network);
 				let signTx = builder.buildAndSignTx(tx,AddressInformationPrivateKey);
 				let postTx = signTx.GetData();
 				postTx.mode='block';
@@ -140,7 +137,7 @@ app.get('/api/faucet',(req,res) => {
 						]
 					}
 				};
-				let builder = Crypto.getBuilder(cosmosArrayAddress[cosmosArrayAddress.length - 1].chainName,'testnet');
+				let builder = Crypto.getBuilder(cosmosArrayAddress[cosmosArrayAddress.length - 1].chainName,config.app.network);
 				let signTx = builder.buildAndSignTx(tx,AddressInformationPrivateKey);
 				let postTx = signTx.GetData();
 				postTx.mode='block';
