@@ -13,7 +13,7 @@ const [cosmosAddr, cosmosPk] = [cosmosFaucetAccount.address, cosmosFaucetAccount
 const reqQueue = [];
 
 app.get('/api/faucet',(req,res) => {
-	reqQueue.push({req,res});
+	reqQueue.push(req);
 	if(reqQueue.length === 1){
 		syncExecuteQueue(reqQueue)
 	}
@@ -27,27 +27,26 @@ function syncExecuteQueue (reqList){
 	if(Array.isArray(reqList) && reqList.length > 0){
 		getSequence({
 			req:reqList[0].req,
-			res:reqList[0].res,
 			reqList,
 		})
 	}
 }
 
-function getSequence({req,res,reqList}){
+function getSequence({req,reqList}){
 	const url = `${req.query.chainName === 'iris' ? config.app.irisLcdUrl : config.app.cosmosLcdUrl}/auth/accounts/${req.query.chainName === 'iris' ? irisAddr : cosmosAddr}`;
 	request.get(url,(error, response, body) => {
 		if(error){
 			console.log(error,'irisLcd error')
 		}else{
 			let parseBody = JSON.parse(body);
-			PostTx({req, res, reqList, account_number: Number(parseBody.result.value.account_number), sequence: Number(parseBody.result.value.sequence)});
+			PostTx({req, reqList, account_number: Number(parseBody.result.value.account_number), sequence: Number(parseBody.result.value.sequence)});
 		}
 		
 		
 	});
 }
 
-function PostTx({req, res, reqList, account_number, sequence}){
+function PostTx({req, reqList, account_number, sequence}){
 	let tx = {
 		chain_id: req.query.chainName === 'iris' ? config.app.irisChainId : config.app.cosmosChainId,
 		from: req.query.chainName === 'iris' ? irisAddr : cosmosAddr,
