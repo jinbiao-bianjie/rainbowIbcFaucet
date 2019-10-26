@@ -6,113 +6,97 @@ const qs = require('querystring');
 const app = express();
 const config = require("./config");
 
-let allArrayAddress = [],isPostedSuccess = true;
-//iris 水龙头地址信息
-let irisAddressInformation = Crypto.getCrypto('iris',config.app.network).recover(`${config.app.irisMnemonicWord}`);
-//cosmos 水龙头地址信息
-let cosmosAddressInformation = Crypto.getCrypto('cosmos',config.app.network).recover(`${config.app.cosmosMnemonicWord}`);
-let iris_account_number,iris_sequence,cosmos_account_number,cosmos_sequence;
-function getIrisAccountNumberAndSequence () {
-	let irisUrl = `${config.app.irisLcdUrl}/auth/accounts/${irisAddressInformation.address}`;
-	request.get(irisUrl,(error, response, body) => {
-		console.log(error,'irisLcd error')
-		console.log(response,'irisLcd  response')
-		let parseBody = JSON.parse(body);
-		iris_account_number = Number(parseBody.result.value.account_number);
-		iris_sequence = Number(parseBody.result.value.sequence)
+const irisFaucetAccount = Crypto.getCrypto('iris',config.app.network).recover(`${config.app.irisMnemonicWord}`);
+const cosmosFaucetAccount = Crypto.getCrypto('cosmos',config.app.network).recover(`${config.app.cosmosMnemonicWord}`);
+const [irisAddr, irisPk] = [irisFaucetAccount.address, irisFaucetAccount.privateKey];
+const [cosmosAddr, cosmosPk] = [cosmosFaucetAccount.address, cosmosFaucetAccount.privateKey];
+const reqQueue = [];
+
+app.get('/api/faucet',(req,res) => {
+	reqQueue.push({req,res});
+	if(reqQueue.length === 1){
+		syncExecuteQueue(reqQueue)
+	}
+	
+});
+
+function syncExecuteQueue (reqList){
+	if(Array.isArray(reqList) && reqList.length > 0){
+		getSequence({
+			req:reqList[0].req,
+			res:reqList[0].res,
+			reqList,
+		})
+	}
+}
+
+function getSequence({req,res,reqList}){
+	const url = `${req.query.chainName === 'iris' ? config.app.irisLcdUrl : config.app.cosmosLcdUrl}/auth/accounts/${req.query.chainName === 'iris' ? irisAddr : cosmosAddr}`;
+	request.get(url,(error, response, body) => {
+		if(error){
+			console.log(error,'irisLcd error')
+		}else{
+			let parseBody = JSON.parse(body);
+			PostTx({req, res, reqList, account_number: Number(parseBody.result.value.account_number), sequence: Number(parseBody.result.value.sequence)});
+		}
+		
+		
 	});
 }
-function getCosmosAccountNumberAndSequence(){
-	let cosmosUrl = `${config.app.cosmosLcdUrl}/auth/accounts/${cosmosAddressInformation.address}`;
-	request.get(cosmosUrl,(error, response, body) => {
-		console.log(error,'cosmosLcd error')
-		let parseBody = JSON.parse(body);
-		cosmos_account_number = Number(parseBody.result.value.account_number);
-		cosmos_sequence = Number(parseBody.result.value.sequence)
+
+function PostTx({req, res, reqList, account_number, sequence}){
+	let tx = {
+		chain_id: req.query.chainName === 'iris' ? config.app.irisChainId : config.app.cosmosChainId,
+		from: req.query.chainName === 'iris' ? irisAddr : cosmosAddr,
+		account_number: account_number,
+		sequence: sequence,
+		fees: req.query.chainName === 'iris' ? {denom: "uiris", amount: 100000} : {denom: "uatom", amount: 100000},
+		gas: config.app.gasNumber,
+		memo:'',
+		type: 'transfer',
+		msg: {
+			to: req.query.address,
+			coins: [
+				{
+					denom: req.query.chainName === 'iris' ? 'uiris' : 'uatom',
+					amount: config.app.tokenNumber,
+				}
+			]
+		}
+	};
+	let builder = Crypto.getBuilder(req.query.chainName,config.app.network);
+	let signTx = builder.buildAndSignTx(tx,req.query.chainName === 'iris' ? irisPk : cosmosPk);
+	let postTx = signTx.GetData();
+	postTx.mode='block';
+	const url = `${req.query.chainName === 'iris' ? config.app.irisLcdUrl : config.app.cosmosLcdUrl}/txs`;
+	console.log(tx);
+	console.log(postTx.tx.msg);
+	return request({
+		url: url,
+		method: "POST",
+		json:true,
+		body: postTx
+	}, (error, response, body) => {
+		if(error){
+			throw Error(error);
+			throw Error(response);
+		}else{
+			reqList.shift();
+			syncExecuteQueue(reqList);
+			if(body && body.txhash){
+				res.send({
+					code: 1,
+					msg:'success',
+				});
+			}else{
+				res.send({
+					code: 0,
+					msg:'failed',
+				});
+			}
+			throw Error(response);
+		}
 	})
 }
-getIrisAccountNumberAndSequence();
-getCosmosAccountNumberAndSequence();
-setInterval(() => {
-	console.log(allArrayAddress.length,'address count');
-	if(allArrayAddress.length !== 0){
-		if(isPostedSuccess){
-			let chainId,from,gas,fees,memo,account_number,sequence,denom,AddressInformationPrivateKey,url;
-			isPostedSuccess = false;
-			if(allArrayAddress[allArrayAddress.length -1].chainName === 'iris'){
-				chainId = `${config.app.irisChainId}`;
-				from = irisAddressInformation.address;
-				gas = `${config.app.gasNumber}`;
-				fees = {denom: "uiris", amount: 100000};
-				memo = '';
-				account_number = iris_account_number;
-				sequence = iris_sequence;
-				denom = 'uiris';
-				AddressInformationPrivateKey = irisAddressInformation.privateKey;
-				url = `${config.app.irisLcdUrl}/txs`
-			}else if(allArrayAddress[allArrayAddress.length -1].chainName === 'cosmos'){
-				chainId = `${config.app.cosmosChainId}`;
-				from = cosmosAddressInformation.address;
-				gas = `${config.app.gasNumber}`;
-				fees = {denom: "uatom", amount: 100000};
-				memo = '';
-				account_number = cosmos_account_number;
-				sequence = cosmos_sequence;
-				denom = 'uatom';
-				AddressInformationPrivateKey = cosmosAddressInformation.privateKey;
-				url = `${config.app.cosmosLcdUrl}/txs`
-			}
-			let tx = {
-				chain_id: chainId,
-				from: from,
-				account_number: account_number,
-				sequence: sequence,
-				fees: fees,
-				gas: gas,
-				memo:'',
-				type: 'transfer',
-				msg: {
-					to: allArrayAddress[allArrayAddress.length - 1].address,
-					coins: [
-						{
-							denom: denom,
-							amount: `${config.app.tokenNumber}`
-						}
-					]
-				}
-			};
-			let builder = Crypto.getBuilder(allArrayAddress[allArrayAddress.length -1].chainName,config.app.network);
-			let signTx = builder.buildAndSignTx(tx,AddressInformationPrivateKey);
-			let postTx = signTx.GetData();
-			postTx.mode='block';
-			return request({
-				url: url,
-				method: "POST",
-				json:true,
-				body: postTx
-			}, (error, response, body) => {
-				console.log(response.request.body,"postTx response")
-				isPostedSuccess = true;
-				getIrisAccountNumberAndSequence();
-				getCosmosAccountNumberAndSequence();
-				if(error){
-					console.log(error)
-				}else if (!error && response.statusCode == 200) {
-					console.log(response.query.body,"post Tx response query body")
-					if(body && body.logs && body.logs[0].success){
-						allArrayAddress.pop(allArrayAddress.length - 1);
-					}
-				}
-			})
-		}
-	}
-},3000)
-app.get('/api/faucet',(req,res) => {
-	allArrayAddress.unshift(req.query)
-	res.send({
-		code: 1,
-		msg:'success',
-	});
-})
 
 app.listen(3000, () => console.log('Example app listening on port 3000!'));
