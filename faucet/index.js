@@ -71,8 +71,6 @@ function PostTx({req, reqList, account_number, sequence}){
 	let postTx = signTx.GetData();
 	postTx.mode='block';
 	const url = `${req.query.chainName === 'iris' ? config.app.irisLcdUrl : config.app.cosmosLcdUrl}/txs`;
-	console.log(tx);
-	console.log(postTx.tx.msg);
 	return request({
 		url: url,
 		method: "POST",
