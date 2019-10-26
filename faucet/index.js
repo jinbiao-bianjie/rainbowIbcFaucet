@@ -80,12 +80,12 @@ function PostTx({req, res, reqList, account_number, sequence}){
 		json:true,
 		body: postTx
 	}, (error, response, body) => {
+		reqList.shift();
+		syncExecuteQueue(reqList);
 		if(error){
 			throw Error(error);
 			throw Error(response);
 		}else{
-			reqList.shift();
-			syncExecuteQueue(reqList);
 			throw Error(response);
 		}
 	})
