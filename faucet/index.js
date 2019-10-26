@@ -91,14 +91,14 @@ setInterval(() => {
 				json:true,
 				body: postTx
 			}, (error, response, body) => {
-				// console.log(response.request.body,"postTx response")
+				console.log(response.request.body,"postTx response")
 				isPostedSuccess = true;
 				getIrisAccountNumberAndSequence();
 				getCosmosAccountNumberAndSequence();
 				if(error){
 					console.log(error)
 				}else if (!error && response.statusCode == 200) {
-					// console.log(response.query.body,"post Tx response query body")
+					console.log(response.query.body,"post Tx response query body")
 					if(body && body.logs && body.logs[0].success){
 						allArrayAddress.pop(allArrayAddress.length - 1);
 					}
