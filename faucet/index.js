@@ -17,7 +17,10 @@ app.get('/api/faucet',(req,res) => {
 	if(reqQueue.length === 1){
 		syncExecuteQueue(reqQueue)
 	}
-	
+	res.send({
+		code: 1,
+		msg:'success',
+	});
 });
 
 function syncExecuteQueue (reqList){
@@ -83,17 +86,6 @@ function PostTx({req, res, reqList, account_number, sequence}){
 		}else{
 			reqList.shift();
 			syncExecuteQueue(reqList);
-			if(body && body.txhash){
-				res.send({
-					code: 1,
-					msg:'success',
-				});
-			}else{
-				res.send({
-					code: 0,
-					msg:'failed',
-				});
-			}
 			throw Error(response);
 		}
 	})
