@@ -11,16 +11,24 @@ const cosmosFaucetAccount = Crypto.getCrypto('cosmos',config.app.network).recove
 const [irisAddr, irisPk] = [irisFaucetAccount.address, irisFaucetAccount.privateKey];
 const [cosmosAddr, cosmosPk] = [cosmosFaucetAccount.address, cosmosFaucetAccount.privateKey];
 const reqQueue = [];
+let sequenceIsError = false
 
 app.get('/api/faucet',(req,res) => {
 	reqQueue.push(req);
 	if(reqQueue.length === 1){
 		syncExecuteQueue(reqQueue)
 	}
-	res.send({
-		code: 1,
-		msg:'success',
-	});
+	if(sequenceIsError){
+		res.send({
+			code: 0,
+			msg:'failed',
+		});
+	}else {
+		res.send({
+			code: 1,
+			msg:'success',
+		});
+	}
 });
 
 function syncExecuteQueue (reqList){
@@ -32,11 +40,16 @@ function syncExecuteQueue (reqList){
 	}
 }
 
-function getSequence({req,reqList}){
+function getSequence({req,reqList},isError){
 	const url = `${req.query.chainName === 'iris' ? config.app.irisLcdUrl : config.app.cosmosLcdUrl}/auth/accounts/${req.query.chainName === 'iris' ? irisAddr : cosmosAddr}`;
 	request.get(url,(error, response, body) => {
 		if(error){
-			console.log(error,'irisLcd error')
+			if(isError){
+				console.log(error,`${req.query.chainName} sequence error`)
+				sequenceIsError = true;
+				return;
+			}
+			getSequence({req,reqList},true)
 		}else{
 			let parseBody = JSON.parse(body);
 			PostTx({req, reqList, account_number: Number(parseBody.result.value.account_number), sequence: Number(parseBody.result.value.sequence)});
