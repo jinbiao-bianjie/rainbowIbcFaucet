@@ -14,7 +14,7 @@ const reqQueue = [];
 let sequenceIsError = false
 
 app.get('/api/faucet',(req,res) => {
-	reqQueue.push(req);
+	reqQueue.push({req});
 	if(reqQueue.length === 1){
 		syncExecuteQueue(reqQueue)
 	}
@@ -96,7 +96,7 @@ function PostTx({req, reqList, account_number, sequence}){
 			throw Error(error);
 			throw Error(response);
 		}else{
-			throw Error(response);
+			console.log(`send to ${req.query.address} success`);
 		}
 	})
 }
